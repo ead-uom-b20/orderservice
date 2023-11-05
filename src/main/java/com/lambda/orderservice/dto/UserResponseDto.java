@@ -12,8 +12,10 @@ public class UserResponseDto {
 
     @SerializedName("id")
     private Long id;
-    @SerializedName("name")
-    private String name;
+    @SerializedName("firstname")
+    private String firstname;
+    @SerializedName("lastname")
+    private String lastname;
     @SerializedName("email")
     private String email;
     @SerializedName("address")
@@ -22,6 +24,10 @@ public class UserResponseDto {
     private String nic;
     @SerializedName("phone")
     private Integer phone;
+    @SerializedName("userrole")
+    private Integer userrole;
+    @SerializedName("status")
+    private Integer status;
 
 
 }

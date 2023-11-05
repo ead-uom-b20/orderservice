@@ -48,16 +48,16 @@ public class OrderServiceImpl implements OrderService {
                 ResponseDto userData = identityServiceFeignClient.getUserById((Long)order.getUserId());
 
                 // Gson
-                Gson gson = new Gson();
-                UserResponseDto userResponseDto = gson.fromJson(userData.getResponse().toString(), UserResponseDto.class);
-                String username = userResponseDto.getName();
+//                Gson gson = new Gson();
+//                UserResponseDto userResponseDto = gson.fromJson(userData.getResponse().toString(), UserResponseDto.class);
+//                String username = userResponseDto.getFirstname();
                 // Gson end
 
                 responseDto =  serviceUtil.getServiceResponse(
                     GetOrderByIdResponseDto.builder()
                             .id(order.getId())
                             .productId((order.getProductId()))
-                            .user(username)
+                            .user(userData.getResponse())
                             .deliveryPersonId(order.getDeliveryPersonId())
                             .quantity(order.getQuantity())
                             .dateTime(order.getDateTime())
