@@ -28,6 +28,7 @@ public class OrderServiceImpl implements OrderService {
     public ResponseDto addNewOrder(OrderDomain orderDomain) {
         ResponseDto responseDto;
         try{
+            orderDomain.setStatus("Order Placed");
             OrderDomain savedOrder = orderRepository.save(orderDomain);
             responseDto =  serviceUtil.getServiceResponse(savedOrder);
         } catch (Exception e){
