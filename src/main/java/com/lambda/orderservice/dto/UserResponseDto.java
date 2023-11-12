@@ -25,7 +25,7 @@ public class UserResponseDto {
     @SerializedName("phone")
     private Integer phone;
     @SerializedName("userrole")
-    private Integer userrole;
+    private String userrole;
     @SerializedName("status")
     private Integer status;
 

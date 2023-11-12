@@ -1,15 +1,19 @@
 package com.lambda.orderservice.service.impl;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.lambda.orderservice.domain.OrderDomain;
 import com.lambda.orderservice.dto.GetOrderByIdResponseDto;
+import com.lambda.orderservice.dto.InventoryResponseDto;
 import com.lambda.orderservice.dto.ResponseDto;
 import com.lambda.orderservice.dto.UserResponseDto;
 import com.lambda.orderservice.repository.OrderRepository;
 import com.lambda.orderservice.service.OrderService;
 import com.lambda.orderservice.service.client.IdentityServiceFeignClient;
+import com.lambda.orderservice.service.client.InventoryServiceFeignClient;
 import com.lambda.orderservice.utils.ServiceUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
@@ -18,21 +22,37 @@ import java.util.Optional;
 
 @RequiredArgsConstructor
 @Service
+@Slf4j
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final ServiceUtil serviceUtil;
     private final IdentityServiceFeignClient identityServiceFeignClient;
+    private final InventoryServiceFeignClient inventoryServiceFeignClient;
 
     @Override
     public ResponseDto addNewOrder(OrderDomain orderDomain) {
         ResponseDto responseDto;
         try{
-            orderDomain.setStatus("Order Placed");
-            OrderDomain savedOrder = orderRepository.save(orderDomain);
-            responseDto =  serviceUtil.getServiceResponse(savedOrder);
+            Long orderCount = orderDomain.getQuantity();
+
+            Long  inventory = inventoryServiceFeignClient.findItemByIdQua(orderDomain.getProductId());
+
+
+            if(orderCount <= inventory){
+                orderDomain.setStatus("Order Placed");
+                OrderDomain savedOrder = orderRepository.save(orderDomain);
+                responseDto =  serviceUtil.getServiceResponse(savedOrder);
+            }else{
+                responseDto =  serviceUtil.getServiceResponse(
+                        "Quantity not enough. Only "+
+                                inventory+
+                                "pcs available !"
+                );
+            }
+
         } catch (Exception e){
-            responseDto =  serviceUtil.getErrorServiceResponse("Can not create new order");
+            responseDto =  serviceUtil.getErrorServiceResponse(String.valueOf(e));
         }
         return responseDto;
     }
@@ -47,17 +67,16 @@ public class OrderServiceImpl implements OrderService {
                 OrderDomain order = orderDomain.get();
                 ResponseDto userData = identityServiceFeignClient.getUserById((Long)order.getUserId());
 
-                // Gson
-//                Gson gson = new Gson();
-//                UserResponseDto userResponseDto = gson.fromJson(userData.getResponse().toString(), UserResponseDto.class);
-//                String username = userResponseDto.getFirstname();
-                // Gson end
+                Gson gson = new Gson();
+                UserResponseDto userResponseDto = gson.fromJson(userData.getResponse().toString(), UserResponseDto.class);
+
+                log.info(userResponseDto.toString());
 
                 responseDto =  serviceUtil.getServiceResponse(
                     GetOrderByIdResponseDto.builder()
                             .id(order.getId())
                             .productId((order.getProductId()))
-                            .user(userData.getResponse())
+                            .user(userResponseDto.getFirstname())
                             .deliveryPersonId(order.getDeliveryPersonId())
                             .quantity(order.getQuantity())
                             .dateTime(order.getDateTime())
