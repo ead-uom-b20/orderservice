@@ -2,6 +2,7 @@ package com.lambda.orderservice.service.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
+import com.lambda.orderservice.domain.InventoryDomain;
 import com.lambda.orderservice.domain.OrderDomain;
 import com.lambda.orderservice.dto.GetOrderByIdResponseDto;
 import com.lambda.orderservice.dto.InventoryResponseDto;
@@ -35,14 +36,22 @@ public class OrderServiceImpl implements OrderService {
         ResponseDto responseDto;
         try{
             Long orderCount = orderDomain.getQuantity();
-
             Long  inventory = inventoryServiceFeignClient.findItemByIdQua(orderDomain.getProductId());
-
-
             if(orderCount <= inventory){
-                orderDomain.setStatus("Order Placed");
-                OrderDomain savedOrder = orderRepository.save(orderDomain);
-                responseDto =  serviceUtil.getServiceResponse(savedOrder);
+                // Reduce the inventory size
+                ResponseDto invenReduce = inventoryServiceFeignClient.updateItem(
+                        InventoryDomain.builder()
+                                .quantity(inventory-orderCount)
+                                .build(), orderDomain.getProductId()
+                );
+                if(invenReduce.isStatus()){
+                    orderDomain.setStatus("Order Placed");
+                    OrderDomain savedOrder = orderRepository.save(orderDomain);
+                    responseDto =  serviceUtil.getServiceResponse(savedOrder);
+                }else{
+                    responseDto = serviceUtil.getErrorServiceResponse("Cant reduce the count !");
+                }
+
             }else{
                 responseDto =  serviceUtil.getServiceResponse(
                         "Quantity not enough. Only "+
@@ -50,7 +59,6 @@ public class OrderServiceImpl implements OrderService {
                                 "pcs available !"
                 );
             }
-
         } catch (Exception e){
             responseDto =  serviceUtil.getErrorServiceResponse(String.valueOf(e));
         }
